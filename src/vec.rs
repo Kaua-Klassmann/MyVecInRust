@@ -134,3 +134,14 @@ impl<T> Drop for MyVec<T> {
         }
     }
 }
+
+impl<T> Clone for MyVec<T> {
+    fn clone(&self) -> Self {
+        MyVec {
+            length: self.length,
+            capacity: self.capacity,
+            layout: self.layout,
+            ptr: self.ptr,
+        }
+    }
+}
