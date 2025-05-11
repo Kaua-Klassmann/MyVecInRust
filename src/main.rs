@@ -28,5 +28,5 @@ fn main() {
     println!("Primeiro: {}", vetor[0]);
     vetor.pop();
     println!("\nVetor: {:?}", vetor);
-    println!("Primeiro: {}", vetor[0]);
+    println!("Primeiro: {}", vetor.get(0).unwrap());
 }

@@ -52,21 +52,21 @@ impl<T> MyVec<T> {
     }
 
     pub fn clear(&mut self) {
-        let layout = alloc::Layout::array::<T>(1).unwrap();
-
         unsafe {
-            let ptr = alloc::alloc(layout) as *mut T;
-
-            if ptr.is_null() {
-                panic!()
-            }
-
             for index in 0..self.length {
                 self.ptr.add(index).drop_in_place();
             }
-
-            self.length = 0;
         }
+
+        self.length = 0;
+    }
+
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if !(index < self.length) {
+            return None;
+        }
+
+        unsafe { Some(&*self.ptr.add(index)) }
     }
 
     pub fn push(&mut self, element: T) {
@@ -86,11 +86,11 @@ impl<T> MyVec<T> {
                 }
 
                 alloc::dealloc(self.ptr as *mut u8, self.layout);
-
-                self.capacity *= 2;
-                self.layout = new_layout;
                 self.ptr = temp_ptr;
             }
+
+            self.capacity *= 2;
+            self.layout = new_layout;
         }
 
         unsafe {
@@ -100,15 +100,13 @@ impl<T> MyVec<T> {
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        unsafe {
-            if self.length == 0 {
-                return None;
-            }
-
-            self.length -= 1;
-
-            Some(self.ptr.add(self.length - 1).read())
+        if self.length == 0 {
+            return None;
         }
+
+        self.length -= 1;
+
+        unsafe { Some(self.ptr.add(self.length).read()) }
     }
 }
 
@@ -135,13 +133,28 @@ impl<T> Drop for MyVec<T> {
     }
 }
 
-impl<T> Clone for MyVec<T> {
+impl<T: Clone> Clone for MyVec<T> {
     fn clone(&self) -> Self {
-        MyVec {
-            length: self.length,
-            capacity: self.capacity,
-            layout: self.layout,
-            ptr: self.ptr,
+        let layout = alloc::Layout::array::<T>(self.capacity).unwrap();
+
+        unsafe {
+            let new_ptr = alloc::alloc(layout) as *mut T;
+
+            if new_ptr.is_null() {
+                panic!();
+            }
+
+            for index in 0..self.length {
+                let value = (*self.ptr.add(index)).clone();
+                new_ptr.add(index).write(value);
+            }
+
+            MyVec {
+                length: self.length,
+                capacity: self.capacity,
+                layout,
+                ptr: new_ptr,
+            }
         }
     }
 }
