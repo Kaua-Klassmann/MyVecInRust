@@ -1,6 +1,5 @@
-use std::{alloc, fmt::Debug, ops::Index, slice};
+use std::{alloc, ops::Index, slice};
 
-#[derive(Debug)]
 pub struct MyVec<T> {
     length: usize,
     capacity: usize,
@@ -70,6 +69,39 @@ impl<T> MyVec<T> {
     }
 
     pub fn push(&mut self, element: T) {
+        self.try_resize();
+
+        unsafe {
+            self.ptr.add(self.length).write(element);
+            self.length += 1;
+        }
+    }
+
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.try_resize();
+
+        unsafe {
+            for i in (index..self.length).rev() {
+                let value = self.ptr.add(i).read();
+                self.ptr.add(i + 1).write(value);
+            }
+
+            self.ptr.add(index).write(element);
+            self.length += 1;
+        }
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        if self.length == 0 {
+            return None;
+        }
+
+        self.length -= 1;
+
+        unsafe { Some(self.ptr.add(self.length).read()) }
+    }
+
+    fn try_resize(&mut self) {
         if self.length == self.capacity {
             let new_layout = alloc::Layout::array::<T>(self.capacity * 2).unwrap();
 
@@ -92,21 +124,6 @@ impl<T> MyVec<T> {
             self.capacity *= 2;
             self.layout = new_layout;
         }
-
-        unsafe {
-            self.ptr.add(self.length).write(element);
-            self.length += 1;
-        }
-    }
-
-    pub fn pop(&mut self) -> Option<T> {
-        if self.length == 0 {
-            return None;
-        }
-
-        self.length -= 1;
-
-        unsafe { Some(self.ptr.add(self.length).read()) }
     }
 }
 
