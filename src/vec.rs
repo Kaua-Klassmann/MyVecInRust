@@ -21,7 +21,7 @@ impl<T> MyVec<T> {
 
             MyVec {
                 length: 0,
-                capacity: 1,
+                capacity: 0,
                 layout,
                 ptr,
                 _phantom: PhantomData,
