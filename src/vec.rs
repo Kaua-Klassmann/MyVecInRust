@@ -1,10 +1,11 @@
-use std::{alloc, ops::Index, slice};
+use std::{alloc, marker::PhantomData, ops::Index, slice};
 
 pub struct MyVec<T> {
     length: usize,
     capacity: usize,
     layout: alloc::Layout,
     ptr: *mut T,
+    _phantom: PhantomData<T>,
 }
 
 impl<T> MyVec<T> {
@@ -23,6 +24,7 @@ impl<T> MyVec<T> {
                 capacity: 1,
                 layout,
                 ptr,
+                _phantom: PhantomData,
             }
         }
     }
@@ -42,6 +44,7 @@ impl<T> MyVec<T> {
                 capacity,
                 layout,
                 ptr,
+                _phantom: PhantomData,
             }
         }
     }
@@ -171,6 +174,7 @@ impl<T: Clone> Clone for MyVec<T> {
                 capacity: self.capacity,
                 layout,
                 ptr: new_ptr,
+                _phantom: PhantomData,
             }
         }
     }
