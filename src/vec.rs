@@ -3,7 +3,6 @@ use std::{alloc, marker::PhantomData, ops::Index, slice};
 pub struct MyVec<T> {
     length: usize,
     capacity: usize,
-    layout: alloc::Layout,
     ptr: *mut T,
     _phantom: PhantomData<T>,
 }
@@ -22,7 +21,6 @@ impl<T> MyVec<T> {
             MyVec {
                 length: 0,
                 capacity: 0,
-                layout,
                 ptr,
                 _phantom: PhantomData,
             }
@@ -42,7 +40,6 @@ impl<T> MyVec<T> {
             MyVec {
                 length: 0,
                 capacity,
-                layout,
                 ptr,
                 _phantom: PhantomData,
             }
@@ -106,6 +103,7 @@ impl<T> MyVec<T> {
 
     fn try_resize(&mut self) {
         if self.length == self.capacity {
+            let old_layout = alloc::Layout::array::<T>(self.capacity).unwrap();
             let new_layout = alloc::Layout::array::<T>(self.capacity * 2).unwrap();
 
             unsafe {
@@ -120,12 +118,11 @@ impl<T> MyVec<T> {
                     temp_ptr.add(index).write(val);
                 }
 
-                alloc::dealloc(self.ptr as *mut u8, self.layout);
+                alloc::dealloc(self.ptr as *mut u8, old_layout);
                 self.ptr = temp_ptr;
             }
 
             self.capacity *= 2;
-            self.layout = new_layout;
         }
     }
 }
@@ -144,11 +141,13 @@ impl<T, Idx: slice::SliceIndex<[T]>> Index<Idx> for MyVec<T> {
 impl<T> Drop for MyVec<T> {
     fn drop(&mut self) {
         unsafe {
+            let layout = alloc::Layout::array::<T>(self.capacity).unwrap();
+
             for index in 0..self.length {
                 self.ptr.add(index).drop_in_place();
             }
 
-            alloc::dealloc(self.ptr as *mut u8, self.layout);
+            alloc::dealloc(self.ptr as *mut u8, layout);
         }
     }
 }
@@ -172,7 +171,6 @@ impl<T: Clone> Clone for MyVec<T> {
             MyVec {
                 length: self.length,
                 capacity: self.capacity,
-                layout,
                 ptr: new_ptr,
                 _phantom: PhantomData,
             }
